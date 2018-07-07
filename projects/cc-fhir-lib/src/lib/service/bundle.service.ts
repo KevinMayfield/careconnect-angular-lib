@@ -8,7 +8,7 @@ import {BehaviorSubject} from "rxjs/BehaviorSubject";
 })
 export class BundleService {
 
-  private bundle : fhir.Bundle;
+  private bundle: fhir.Bundle;
 
   constructor(private fhirService : FhirService) { }
 

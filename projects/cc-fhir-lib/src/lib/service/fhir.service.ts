@@ -6,9 +6,7 @@ import {AuthService} from './auth.service';
 import {Router} from '@angular/router';
 
 
-/// <reference path="node_modules/@types/fhir/index.d.ts" />
-
-@Injectable()
+@Injectable({ providedIn: 'root'})
 export class FhirService {
 
 
@@ -53,21 +51,21 @@ export class FhirService {
     return headers;
   }
 
-  getEPRHeaders(contentType : boolean = true ): HttpHeaders {
+  getEPRHeaders(contentType: boolean = true ): HttpHeaders {
 
-    let headers = this.getHeaders(contentType);
+    const headers = this.getHeaders(contentType);
 
     return headers;
   }
 
-  authoriseOAuth2() : void  {
+  authoriseOAuth2(): void  {
 
 
     this.http.get<fhir.CapabilityStatement>(this.getEPRUrl()+'/metadata').subscribe(
       conformance  => {
 
-        for (let rest of conformance.rest) {
-          for (let extension of rest.security.extension) {
+        for (const rest of conformance.rest) {
+          for (const extension of rest.security.extension) {
 
             if (extension.url === 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris') {
 
@@ -111,30 +109,32 @@ export class FhirService {
     return this.oauthTokenChange;
   }
 
-  getScope() :string {
-    return localStorage.getItem("scope");
+  getScope(): string {
+    return localStorage.getItem('scope');
   }
-  hasScope(resource : string) : boolean {
-    let scope : string= this.getScope();
+  hasScope(resource: string): boolean {
+    let scope: string = this.getScope();
 
     if (scope.indexOf(resource) !== -1) return true;
     return false;
   }
 
 
-  performAuthorise (clientId : string, clientSecret :string){
+  performAuthorise (clientId: string, clientSecret: string){
 
 
     localStorage.setItem('authoriseUri', this.authoriseUri);
     localStorage.setItem('tokenUri', this.tokenUri);
 
-    if (localStorage.getItem('access_token')!= undefined) {
+    if (localStorage.getItem('access_token') !== undefined) {
       // access token is present so forgo access token retrieval
 
       this.authService.updateUser();
       // Check token expiry
       if (!this.oauth2service.isAuthenticated()) {
-        const url = this.authoriseUri + '?client_id=' + clientId + '&response_type=code&redirect_uri='+document.baseURI+'/callback&aud=https://test.careconnect.nhs.uk';
+        const url = this.authoriseUri + '?client_id=' + clientId
+            + '&response_type=code&redirect_uri=' + document.baseURI
+            + '/callback&aud=https://test.careconnect.nhs.uk';
         // Perform redirect to
         window.location.href = url;
       }
@@ -142,9 +142,9 @@ export class FhirService {
       this.router.navigateByUrl('ping');
     } else {
 
-      const url = this.authoriseUri + '?client_id=' + clientId + '&response_type=code&redirect_uri='+document.baseURI+'/callback&aud=https://test.careconnect.nhs.uk';
-      // Perform redirect to
-      window.location.href = url;
+        window.location.href = this.authoriseUri + '?client_id='
+          + clientId + '&response_type=code&redirect_uri='
+          + document.baseURI + '/callback&aud=https://test.careconnect.nhs.uk';
     }
 
   }
@@ -161,18 +161,18 @@ export class FhirService {
     });
 
     let headers = new HttpHeaders( {'Content-Type': 'application/json '} );
-    headers = headers.append('Accept','application/json');
-    this.http.post(url,payload,{ 'headers' : headers }  ).subscribe( response => {
+    headers = headers.append('Accept', 'application/json');
+    this.http.post(url, payload , { 'headers' : headers }  ).subscribe( response => {
 
        // KGM firebase code this.db.object('oauth2/'+encodeURI((this.platformLocation as any).location.origin)).set(response);
         this.performAuthorise((response as any).client_id, (response as any).client_secret);
       }
       , (error: any) => {
-        console.log("Register Response Error = "+error);
+        console.log('Register Response Error = ' + error);
       }
-      ,() => {
+      , () => {
 
-        console.log("Register complete()")
+        console.log('Register complete()')
 
 
 
@@ -183,34 +183,34 @@ export class FhirService {
   getCatClientSecret() {
     // This is a marker for entryPoint.sh to replace
     let secret :string = 'SMART_OAUTH2_CLIENT_SECRET';
-    if (secret.indexOf('SECRET') != -1) secret = environment.oauth2.client_secret;
+    if (secret.indexOf('SECRET') !== -1) secret = environment.oauth2.client_secret;
     return secret;
   }
 
 
-  performGetAccessToken(authCode :string ) {
+  performGetAccessToken(authCode: string ) {
 
 
-    let bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
+    const bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
     let headers = new HttpHeaders( {'Authorization' : bearerToken});
-    headers= headers.append('Content-Type','application/x-www-form-urlencoded');
+    headers = headers.append('Content-Type','application/x-www-form-urlencoded');
 
-    const url = localStorage.getItem("tokenUri");
+    const url = localStorage.getItem('tokenUri');
 
-    let body = new URLSearchParams();
+    const body = new URLSearchParams();
     body.set('grant_type', 'authorization_code');
     body.set('code', authCode);
-    body.set('redirect_uri',document.baseURI+'/callback');
+    body.set('redirect_uri', document.baseURI + '/callback');
 
 
     this.http.post<Oauth2token>(url,body.toString(), { 'headers' : headers } ).subscribe( response => {
        // console.log(response);
         this.smartToken = response;
-        console.log('OAuth2Token : '+response);
+        console.log('OAuth2Token : ' + response);
         this.authService.auth = true;
-        localStorage.setItem("access_token", this.smartToken.access_token);
+        localStorage.setItem('access_token', this.smartToken.access_token);
 
-        localStorage.setItem("scope", this.smartToken.scope);
+        localStorage.setItem('scope', this.smartToken.scope);
 
         this.authService.updateUser();
       }
@@ -232,19 +232,20 @@ export class FhirService {
 
     // https://healthservices.atlassian.net/wiki/spaces/HSPC/pages/119734296/Registering+a+Launch+Context
 
-    let bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
+    const bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
 
     const url = localStorage.getItem("tokenUri").replace('token', '') + 'Launch';
-    let payload = JSON.stringify({launch_id: contextId, parameters: []});
+    const payload = JSON.stringify({launch_id: contextId, parameters: []});
 
     let headers = new HttpHeaders({'Authorization': bearerToken });
-    headers= headers.append('Content-Type','application/json');
+    headers = headers.append('Content-Type', 'application/json');
 
     console.log(payload);
-    return this.http.post<any>(url,"{ launch_id : '"+contextId+"', parameters : { username : 'Get Details From Keycloak', patient : '"+patientId+"' }  }", {'headers': headers});
+    return this.http.post<any>(url, '{ launch_id : ' + contextId + ', parameters : { username : "Get Details From Keycloak", '
+        + 'patient : "+patientId+" }  }', {'headers': headers});
   }
 
-  getSearchCompositions(patientId : string) : Observable<Bundle> {
+  getSearchCompositions(patientId : string) : Observable<fhir.Bundle> {
 
     const url = this.getEPRUrl() + this.path +`?patient=${patientId}`;
 
