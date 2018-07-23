@@ -1,9 +1,13 @@
 import {EventEmitter, Injectable, Output} from '@angular/core';
 import { Observable, Subject, asapScheduler, pipe, of, from, interval, merge, fromEvent } from 'rxjs';
 import {Oauth2token} from '../model/oauth2token';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {AuthService} from './auth.service';
 import {Router} from '@angular/router';
+import {} from '@types/fhir';
+import {environment} from '../../../../../src/environments/environment';
+import {PlatformLocation} from '@angular/common';
+import {Oauth2Service} from './oauth2.service';
 
 
 @Injectable({ providedIn: 'root'})
@@ -28,7 +32,7 @@ export class FhirService {
 
   public getEPRUrl(): string {
 
-    let eprUrl: string = 'FHIR_SERVER_URL';
+    let eprUrl = 'FHIR_SERVER_URL';
     if (eprUrl.indexOf('FHIR_SERVER') !== -1) eprUrl = environment.oauth2.eprUrl;
     return eprUrl;
   }
@@ -61,7 +65,7 @@ export class FhirService {
   authoriseOAuth2(): void  {
 
 
-    this.http.get<fhir.CapabilityStatement>(this.getEPRUrl()+'/metadata').subscribe(
+    this.http.get<fhir.CapabilityStatement>(this.getEPRUrl() + '/metadata').subscribe(
       conformance  => {
 
         for (const rest of conformance.rest) {
@@ -172,7 +176,7 @@ export class FhirService {
       }
       , () => {
 
-        console.log('Register complete()')
+        console.log('Register complete()');
 
 
 
@@ -182,8 +186,10 @@ export class FhirService {
 
   getCatClientSecret() {
     // This is a marker for entryPoint.sh to replace
-    let secret :string = 'SMART_OAUTH2_CLIENT_SECRET';
-    if (secret.indexOf('SECRET') !== -1) secret = environment.oauth2.client_secret;
+    let secret = 'SMART_OAUTH2_CLIENT_SECRET';
+    if (secret.indexOf('SECRET') !== -1) {
+        secret = environment.oauth2.client_secret;
+    }
     return secret;
   }
 
@@ -191,9 +197,9 @@ export class FhirService {
   performGetAccessToken(authCode: string ) {
 
 
-    const bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
+    const bearerToken = 'Basic ' + btoa(environment.oauth2.client_id + ':' + this.getCatClientSecret());
     let headers = new HttpHeaders( {'Authorization' : bearerToken});
-    headers = headers.append('Content-Type','application/x-www-form-urlencoded');
+    headers = headers.append('Content-Type', 'application/x-www-form-urlencoded');
 
     const url = localStorage.getItem('tokenUri');
 
@@ -203,7 +209,7 @@ export class FhirService {
     body.set('redirect_uri', document.baseURI + '/callback');
 
 
-    this.http.post<Oauth2token>(url,body.toString(), { 'headers' : headers } ).subscribe( response => {
+    this.http.post<Oauth2token>(url, body.toString(), { 'headers' : headers } ).subscribe( response => {
        // console.log(response);
         this.smartToken = response;
         console.log('OAuth2Token : ' + response);
@@ -226,15 +232,15 @@ export class FhirService {
     );
   }
 
-  launchSMART(appId : string, contextId : string, patientId : string) :Observable<any> {
+  launchSMART(appId: string, contextId: string, patientId: string): Observable<any> {
 
     // Calls OAuth2 Server to register launch context for SMART App.
 
     // https://healthservices.atlassian.net/wiki/spaces/HSPC/pages/119734296/Registering+a+Launch+Context
 
-    const bearerToken = 'Basic '+btoa(environment.oauth2.client_id+":"+this.getCatClientSecret());
+    const bearerToken = 'Basic ' + btoa(environment.oauth2.client_id + ':' + this.getCatClientSecret());
 
-    const url = localStorage.getItem("tokenUri").replace('token', '') + 'Launch';
+    const url = localStorage.getItem('tokenUri').replace('token', '') + 'Launch';
     const payload = JSON.stringify({launch_id: contextId, parameters: []});
 
     let headers = new HttpHeaders({'Authorization': bearerToken });
@@ -245,11 +251,11 @@ export class FhirService {
         + 'patient : "+patientId+" }  }', {'headers': headers});
   }
 
-  getSearchCompositions(patientId : string) : Observable<fhir.Bundle> {
+  getSearchCompositions(patientId: string) : Observable<fhir.Bundle> {
 
-    const url = this.getEPRUrl() + this.path +`?patient=${patientId}`;
+    const url = this.getEPRUrl() + this.path + '?patient=${patientId}';
 
-    return this.http.get<fhir.Bundle>(url,{ 'headers' : this.getHeaders()});
+    return this.http.get<fhir.Bundle>(url ,{ 'headers' : this.getHeaders()});
 
   }
 
@@ -261,11 +267,11 @@ export class FhirService {
     return this.http.get<fhir.Binary>(url,{ 'headers' : this.getEPRHeaders(true)});
 
   }
-  getBinaryRaw(id: string,): Observable<any> {
+  getBinaryRaw(id: string): Observable<any> {
 
     const url = this.getEPRUrl() + `/Binary/${id}`;
 
-    return this.http.get(url,{ 'headers' : this.getEPRHeaders(false) , responseType : 'blob' });
+    return this.http.get(url,{ 'headers': this.getEPRHeaders(false) , responseType: 'blob' });
 
   }
 
@@ -295,36 +301,36 @@ export class FhirService {
 
 
 
-  postBundle(document: any,contentType : string) : Observable<fhir.Bundle> {
+  postBundle(document: any, contentType: string): Observable<fhir.Bundle> {
 
-    let headers :HttpHeaders = this.getEPRHeaders(false);
-    headers.append('Content-Type',contentType);
-    headers.append('Prefer','return=representation');
+    const headers: HttpHeaders = this.getEPRHeaders(false);
+    headers.append('Content-Type' , contentType);
+    headers.append('Prefer', 'return=representation');
     const url = this.getEPRUrl() + `/Bundle`;
 
-    return this.http.post<fhir.Bundle>(url,document,{ 'headers' :headers});
+    return this.http.post<fhir.Bundle>(url , document ,{ 'headers': headers});
   }
 
-  postBundleValidate(document: any,contentType : string) : Observable<any> {
+  postBundleValidate(document: any, contentType: string): Observable<any> {
 
-    let headers :HttpHeaders = this.getEPRHeaders(false);
-    headers.append('Content-Type',contentType);
+    const headers: HttpHeaders = this.getEPRHeaders(false);
+    headers.append('Content-Type' , contentType);
     const url = this.getEPRUrl() + `/Bundle/$validate?_format=json`;
 
-    return this.http.post<fhir.Bundle>(url,document,{ 'headers' :headers});
+    return this.http.post<fhir.Bundle>(url, document,{ 'headers': headers});
   }
 
-  putBundle(document: any,contentType : string) : Observable<fhir.Bundle> {
+  putBundle(document: any, contentType: string): Observable<fhir.Bundle> {
 
-    let headers :HttpHeaders = this.getEPRHeaders(false);
-    headers.append('Content-Type',contentType);
-    headers.append('Prefer','return=representation');
+    const headers: HttpHeaders = this.getEPRHeaders(false);
+    headers.append('Content-Type', contentType);
+    headers.append('Prefer', 'return=representation');
 
     // TODO Get real id from XML Bundle
     const url = this.getEPRUrl() + `/Bundle`;
     let params = new HttpParams();
-    params = params.append('identifier','https://tools.ietf.org/html/rfc4122|1ff370b6-fc5b-40a1-9721-2a942e301f65');
-    return this.http.put<fhir.Bundle>(url,document,{ 'params': params, 'headers' :headers});
+    params = params.append('identifier', 'https://tools.ietf.org/html/rfc4122|1ff370b6-fc5b-40a1-9721-2a942e301f65');
+    return this.http.put<fhir.Bundle>(url, document,{ 'params': params, 'headers': headers});
   }
 
   getEPREncounters(patientId: string): Observable<fhir.Bundle> {
@@ -343,7 +349,7 @@ export class FhirService {
 
   }
 
-  getResource(reference : string ) : Observable<fhir.Resource> {
+  getResource(reference: string ): Observable<fhir.Resource> {
     const url = this.getEPRUrl()  + '/' + reference;
 
     return this.http.get<fhir.Resource>(url,{ 'headers' : this.getEPRHeaders()});
@@ -369,7 +375,7 @@ export class FhirService {
 
     const url = this.getEPRUrl()  + `/DocumentReference/${documentId}`;
 
-    return this.http.get<fhir.DocumentReference>(url,{ 'headers' : this.getEPRHeaders()});
+    return this.http.get<fhir.DocumentReference>(url,{ 'headers': this.getEPRHeaders()});
 
   }
 
@@ -377,7 +383,7 @@ export class FhirService {
 
     const url = this.getEPRUrl()  + `/Encounter/${encounterId}/$document?_count=50`;
 
-    return this.http.get<fhir.Bundle>(url,{ 'headers' : this.getEPRHeaders()});
+    return this.http.get<fhir.Bundle>(url,{ 'headers': this.getEPRHeaders()});
 
   }
   getEPREncounterInclude(encounterId: string): Observable<fhir.Bundle> {
@@ -431,9 +437,9 @@ export class FhirService {
 
 
 
-  getEPRObservationsByCode(patientId: number, code:string, date : string): Observable<fhir.Bundle> {
+  getEPRObservationsByCode(patientId: number, code: string, date : string): Observable<fhir.Bundle> {
 
-    let url = this.getEPRUrl()  + `/Observation?patient=${patientId}`+`&code=${code}&_count=20`;
+    let url = this.getEPRUrl()  + `/Observation?patient=${patientId}` + `&code=${code}&_count=20`;
     if (date !== undefined) {
       url = url + '&date=ge' + date;
     }
@@ -451,22 +457,22 @@ export class FhirService {
   }
   getEPRProcedures(patientId: string): Observable<fhir.Bundle> {
 
-    const url = this.getEPRUrl()  + `/Procedure?patient=${patientId}`;
+    const url = this.getEPRUrl() + `/Procedure?patient=${patientId}`;
 
     return this.http.get<fhir.Bundle>(url,{ 'headers' : this.getEPRHeaders()});
 
   }
 
-  getValueSet(valueSet : string ) : Observable<fhir.ValueSet> {
-    const url = 'https://vonk.fire.ly/ValueSet/'+valueSet;
+  getValueSet(valueSet: string ): Observable<fhir.ValueSet> {
+    const url = 'https://vonk.fire.ly/ValueSet/' + valueSet;
     let headers = new HttpHeaders();
     headers = headers.append('Accept', 'application/fhir+json');
 
     return this.http.get<fhir.ValueSet>(url,{ 'headers' : headers });
   }
 
-  getNHSDValueSet(valueSet : string ) : Observable<fhir.ValueSet> {
-    const url = 'https://fhir-test.nhs.uk/STU3/ValueSet/'+valueSet;
+  getNHSDValueSet(valueSet: string ): Observable<fhir.ValueSet> {
+    const url = 'https://fhir-test.nhs.uk/STU3/ValueSet/' + valueSet;
     let headers = new HttpHeaders();
     headers = headers.append('Accept', 'application/fhir+json');
 
@@ -478,8 +484,8 @@ export class FhirService {
   /* GET patients whose name contains search term */
   searchPatients(term: string): Observable<fhir.Bundle> {
     let url =  this.getEPRUrl();
-    if (!isNaN(parseInt(term))) {
-      console.log('Number '+term);
+    if (!isNaN(parseInt(term, 0))) {
+      console.log('Number ' + term);
       url =  this.getEPRUrl();
       return this.http.get<fhir.Bundle>(url + `/Patient?identifier=${term}`, { 'headers' : this.getEPRHeaders() });
     } else {
@@ -510,8 +516,8 @@ export class FhirService {
 
   searchPractitioners(term: string): Observable<fhir.Bundle> {
     let url =  this.getEPRUrl();
-    if (!isNaN(parseInt(term))) {
-      console.log('Number '+term);
+    if (!isNaN(parseInt(term,0))) {
+      console.log('Number ' + term);
       url =  this.getEPRUrl();
       return this.http.get<fhir.Bundle>(url + `/Practitioner?identifier=${term}`, { 'headers' : this.getEPRHeaders() });
     } else {

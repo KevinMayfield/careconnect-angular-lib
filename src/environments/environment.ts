@@ -4,6 +4,11 @@
 
 export const environment = {
   production: false
+    , oauth2: {
+      client_id: '',
+        client_secret: '',
+        eprUrl: ''
+    }
 };
 
 /*
