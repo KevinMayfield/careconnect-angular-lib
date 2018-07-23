@@ -5,7 +5,6 @@ import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {AuthService} from './auth.service';
 import {Router} from '@angular/router';
 import {} from '@types/fhir';
-import {environment} from '../../../../../src/environments/environment';
 import {PlatformLocation} from '@angular/common';
 import {Oauth2Service} from './oauth2.service';
 
@@ -25,16 +24,25 @@ export class FhirService {
 
   private smartToken: Oauth2token;
 
+  private eprUrl:string;
+
+  private client_id:string;
+
+  private client_secret:string;
+
   oauthTokenChange: EventEmitter<Oauth2token> = new EventEmitter();
 
   public path = '/Composition';
 
+  public config(config: any) {
+
+    this.eprUrl = config.eprUrl;
+    this.client_id = config.client_id;
+    this.client_secret = config.client_secret;
+  }
 
   public getEPRUrl(): string {
-
-    let eprUrl = 'FHIR_SERVER_URL';
-    if (eprUrl.indexOf('FHIR_SERVER') !== -1) eprUrl = environment.oauth2.eprUrl;
-    return eprUrl;
+    return this.eprUrl;
   }
 
   constructor(  private http: HttpClient
@@ -102,7 +110,7 @@ export class FhirService {
         // If no registration then register client
         // Dynamic registration not present at the mo but   this.performRegister();
 
-        this.performAuthorise(environment.oauth2.client_id, this.getCatClientSecret());
+        this.performAuthorise(this.client_id, this.getCatClientSecret());
 
         return this.authoriseUri;
       }
@@ -188,7 +196,7 @@ export class FhirService {
     // This is a marker for entryPoint.sh to replace
     let secret = 'SMART_OAUTH2_CLIENT_SECRET';
     if (secret.indexOf('SECRET') !== -1) {
-        secret = environment.oauth2.client_secret;
+        secret = this.client_secret;
     }
     return secret;
   }
@@ -197,7 +205,7 @@ export class FhirService {
   performGetAccessToken(authCode: string ) {
 
 
-    const bearerToken = 'Basic ' + btoa(environment.oauth2.client_id + ':' + this.getCatClientSecret());
+    const bearerToken = 'Basic ' + btoa(this.client_id + ':' + this.getCatClientSecret());
     let headers = new HttpHeaders( {'Authorization' : bearerToken});
     headers = headers.append('Content-Type', 'application/x-www-form-urlencoded');
 
@@ -238,7 +246,7 @@ export class FhirService {
 
     // https://healthservices.atlassian.net/wiki/spaces/HSPC/pages/119734296/Registering+a+Launch+Context
 
-    const bearerToken = 'Basic ' + btoa(environment.oauth2.client_id + ':' + this.getCatClientSecret());
+    const bearerToken = 'Basic ' + btoa(this.client_id + ':' + this.getCatClientSecret());
 
     const url = localStorage.getItem('tokenUri').replace('token', '') + 'Launch';
     const payload = JSON.stringify({launch_id: contextId, parameters: []});
